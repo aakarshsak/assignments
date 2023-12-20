@@ -1,6 +1,6 @@
-const request = require('supertest');
-const assert = require('assert');
-const express = require('express');
+const request = require("supertest");
+const assert = require("assert");
+const express = require("express");
 const app = express();
 // You have been given an express server which has a few endpoints.
 // Your task is to create a global middleware (app.use) which will
@@ -13,15 +13,50 @@ const app = express();
 
 let numberOfRequestsForUser = {};
 setInterval(() => {
-    numberOfRequestsForUser = {};
-}, 1000)
+  numberOfRequestsForUser = {};
+}, 1000);
 
-app.get('/user', function(req, res) {
-  res.status(200).json({ name: 'john' });
+app.use((req, res, next) => {
+  const userId = req.headers["user-id"];
+  if (!userId) {
+    res.status(401).send("Add user id in header...");
+    return;
+  }
+
+  req.userId = userId;
+
+  next();
 });
 
-app.post('/user', function(req, res) {
-  res.status(200).json({ msg: 'created dummy user' });
+app.use((req, res, next) => {
+  // console.log(numberOfRequestsForUser, "INside 2nd middle");
+  if (!numberOfRequestsForUser[req.userId]) {
+    numberOfRequestsForUser[req.userId] = 1;
+    // console.log(numberOfRequestsForUser, "Inside if");
+  } else {
+    numberOfRequestsForUser[req.userId] += numberOfRequestsForUser[req.userId];
+  }
+  // console.log(numberOfRequestsForUser);
+  if (
+    numberOfRequestsForUser[req.userId] &&
+    numberOfRequestsForUser[req.userId] > 5
+  ) {
+    res.status(404).send();
+    return;
+  }
+  next();
 });
+
+app.get("/user", function (req, res) {
+  res.status(200).json({ name: "john" });
+});
+
+app.post("/user", function (req, res) {
+  res.status(200).json({ msg: "created dummy user" });
+});
+
+// app.listen(3000, () => {
+//   console.log("Listening on port 3000");
+// });
 
 module.exports = app;
